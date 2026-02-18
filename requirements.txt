@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+streamlit
+openai-whisper
+yt-dlp
+transformers
+torch
+scipy
+requests
+python-dotenv
+httpx
+pydantic
+deno
