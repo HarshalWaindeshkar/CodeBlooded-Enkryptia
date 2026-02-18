@@ -1,153 +1,239 @@
 import streamlit as st
 import requests
+import plotly.graph_objects as go
+import plotly.express as px
+import re
+import time
 
 API_URL = "http://127.0.0.1:8000/analyze"
 
+# ==========================
+# PAGE CONFIG
+# ==========================
 st.set_page_config(
-    page_title="Finfluencer Risk Detector",
-    page_icon="🔍",
-    layout="centered"
+    page_title="Finfluencer AI Intelligence",
+    page_icon="🚀",
+    layout="wide"
 )
 
-st.title("🔍 AI Finfluencer Risk Detector")
-st.markdown("**Powered by OpenAI Whisper + FinBERT Financial AI Model**")
+# ==========================
+# NEXT LEVEL UI STYLE
+# ==========================
+st.markdown("""
+<style>
+
+/* Background */
+.stApp {
+background: linear-gradient(135deg,#05060a,#0b0f19,#111827);
+color:white;
+}
+
+/* Fix heading cut */
+.block-container {
+padding-top:2rem !important;
+}
+
+/* Neon title */
+.big-title {
+font-size:46px;
+font-weight:900;
+background: linear-gradient(90deg,#00ffd5,#5f7cff,#ff00ff);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+}
+
+/* Glass cards */
+.glass {
+background: rgba(255,255,255,0.05);
+backdrop-filter: blur(15px);
+border-radius:18px;
+padding:20px;
+box-shadow:0px 0px 25px rgba(0,0,0,0.4);
+}
+
+/* KPI cards */
+.metric-box {
+background: rgba(255,255,255,0.08);
+border-radius:14px;
+padding:15px;
+text-align:center;
+font-size:18px;
+}
+
+/* Video fix — supports shorts + reels */
+video {
+width:100% !important;
+height:auto !important;
+object-fit:contain !important;
+border-radius:12px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================
+# SIDEBAR
+# ==========================
+with st.sidebar:
+
+    st.title("🧠 AI Control Panel")
+
+    url = st.text_input("YouTube Video URL")
+
+    analyze_btn = st.button("🚀 Run AI Analysis", use_container_width=True)
+
+    st.divider()
+    st.caption("Modules Active")
+    st.success("Whisper Transcription")
+    st.success("FinBERT Analysis")
+    st.success("Risk Detection Engine")
+
+# ==========================
+# HEADER
+# ==========================
+st.markdown('<div class="big-title">🚀 Finfluencer Intelligence Dashboard</div>', unsafe_allow_html=True)
+st.caption("Real-time AI risk analytics powered by Whisper + FinBERT")
+
 st.divider()
 
-url = st.text_input("🔗 YouTube Video URL", placeholder="https://www.youtube.com/watch?v=...")
-analyze_btn = st.button("🚀 Analyze Video", use_container_width=True)
-
+# ==========================
+# ANALYSIS
+# ==========================
 if analyze_btn:
-    if not url:
-        st.error("Please enter a YouTube URL first.")
-    else:
-        with st.spinner("⏳ Transcribing and running AI analysis... please wait"):
-            try:
-                response = requests.post(API_URL, json={"url": url}, timeout=300)
-                data = response.json()
 
-                if response.status_code != 200:
-                    st.error(f"API Error: {data.get('detail', 'Unknown error')}")
-                else:
-                    st.divider()
+    with st.spinner("Launching AI pipeline..."):
 
-                    # ── SECTION 1: Video Info ──
-                    st.subheader(f"📹 {data['video_title']}")
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric(
-                        label="⏱️ Duration",
-                        value=f"{data['duration_seconds']}s",
-                        help="Total length of the video"
-                    )
-                    col2.metric(
-                        label="📝 Words Transcribed",
-                        value=data['word_count'],
-                        help="Total words extracted from audio by Whisper AI"
-                    )
-                    col3.metric(
-                        label="🌐 Language",
-                        value=data['language'].upper(),
-                        help="Language detected by Whisper AI"
-                    )
-                    st.divider()
+        response = requests.post(API_URL, json={"url": url}, timeout=300)
+        data = response.json()
 
-                    # ── SECTION 2: Overall Risk Score ──
-                    st.markdown("### 🎯 Overall Risk Score")
-                    st.caption("A score from 0–10 calculated by combining FinBERT sentiment analysis, hype language detection, and disclaimer checking.")
+        score = data['risk_score']
+        sentiment = data.get('finbert_sentiment','neutral')
+        confidence = data.get('finbert_confidence',0)
 
-                    score = data['risk_score']
-                    label = data['risk_label']
+        # ==========================
+        # VIDEO + KPI GRID
+        # ==========================
+        left, right = st.columns([2,3])
 
-                    if score >= 7:
-                        st.error(f"## {label}")
-                        st.error(f"### {score} / 10")
-                        st.error("⛔ This video shows strong signs of misleading or high-risk financial content.")
-                    elif score >= 4:
-                        st.warning(f"## {label}")
-                        st.warning(f"### {score} / 10")
-                        st.warning("⚠️ This video shows some signs of risky or unbalanced financial content. Watch with caution.")
-                    else:
-                        st.success(f"## {label}")
-                        st.success(f"### {score} / 10")
-                        st.success("✅ This video appears to contain relatively balanced financial content.")
+        # -------- VIDEO PLAYER --------
+        with left:
 
-                    st.progress(score / 10)
-                    st.divider()
+            st.markdown('<div class="glass">', unsafe_allow_html=True)
+            st.subheader("▶️ Video Preview")
 
-                    # ── SECTION 3: FinBERT AI Analysis ──
-                    st.markdown("### 🤖 FinBERT AI Sentiment Analysis")
-                    st.caption("""
-                    **What is FinBERT?**  
-                    FinBERT is an AI model trained on thousands of financial documents.
-                    It reads the video transcript and detects whether the financial tone
-                    is **Positive** (hyped/overconfident), **Negative** (fear-mongering),
-                    or **Neutral** (balanced and objective).
-                    """)
+            if "youtube.com" in url or "youtu.be" in url:
+                st.video(url)
+            else:
+                st.warning("Video preview available only for YouTube links.")
 
-                    sentiment = data.get('finbert_sentiment', 'unknown')
-                    confidence = data.get('finbert_confidence', 0)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-                    col1, col2 = st.columns(2)
-                    col1.metric(
-                        label="📊 Sentiment Detected",
-                        value=sentiment.upper(),
-                        help="The overall financial tone FinBERT detected in this video"
-                    )
-                    col2.metric(
-                        label="🎯 AI Confidence",
-                        value=f"{int(confidence * 100)}%",
-                        help="How confident FinBERT is in its sentiment classification"
-                    )
+        # -------- KPI DASHBOARD --------
+        with right:
 
-                    if sentiment == 'positive':
-                        st.warning("""
-                        **🔴 What this means for you:**  
-                        FinBERT found the video has an **overwhelmingly positive financial tone**.  
-                        Credible financial content always mentions risks alongside rewards.  
-                        A video that sounds too good to be true — often is.
-                        """)
-                    elif sentiment == 'negative':
-                        st.info("""
-                        **🔵 What this means for you:**  
-                        FinBERT detected a **negative financial tone**.  
-                        This could mean the creator is using fear tactics to push
-                        alternative investments like gold, crypto, or specific stocks.
-                        """)
-                    else:
-                        st.success("""
-                        **🟢 What this means for you:**  
-                        FinBERT detected a **neutral, balanced tone**.  
-                        The content appears to discuss financial topics objectively
-                        without excessive hype or fear — a sign of credible advice.
-                        """)
-                    st.divider()
+            st.markdown('<div class="glass">', unsafe_allow_html=True)
 
-                    # ── SECTION 4: Score Breakdown ──
-                    st.markdown("### 📋 Why Did It Get This Score?")
-                    st.caption("Each factor below contributed to the final risk score.")
-                    for reason in data['reasons']:
-                        st.markdown(f"- {reason}")
-                    st.divider()
+            k1,k2,k3,k4 = st.columns(4)
 
-                    # ── SECTION 5: Disclaimer Check ──
-                    st.markdown("### ⚖️ Legal Disclaimer Check")
-                    st.caption("Legitimate financial creators must disclose that their content is not professional financial advice.")
-                    if data['disclaimer_found']:
-                        st.success(f"✅ Disclaimer found: *{', '.join(data['found_disclaimers'])}*")
-                    else:
-                        st.error("🚨 No financial disclaimer detected — this is a red flag for unregulated financial advice.")
-                    st.divider()
+            k1.metric("🔥 Risk Score", f"{score}/10")
+            k2.metric("📊 Sentiment", sentiment.upper())
+            k3.metric("🎯 Confidence", f"{int(confidence*100)}%")
+            k4.metric("📝 Words", data['word_count'])
 
-                    # ── SECTION 6: Full Transcript ──
-                    with st.expander("📝 View Full AI-Generated Transcript (by OpenAI Whisper)"):
-                        st.caption("This transcript was automatically generated from the video audio using OpenAI Whisper")
-                        st.write(data['full_transcript'])
+            st.markdown('</div>', unsafe_allow_html=True)
 
-            except requests.exceptions.ConnectionError:
-                st.error("❌ Cannot connect to API. Make sure FastAPI is running in Terminal 1.")
-            except requests.exceptions.Timeout:
-                st.error("⏰ Timeout — try a shorter video (under 5 mins).")
-            except Exception as e:
-                st.error(f"Something went wrong: {str(e)}")
+        st.divider()
+
+        # ==========================
+        # MAIN ANALYTICS GRID
+        # ==========================
+        col1, col2 = st.columns([2,1])
+
+        # -------- SPEEDOMETER GAUGE --------
+        with col1:
+
+            st.markdown('<div class="glass">', unsafe_allow_html=True)
+
+            gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=score,
+                title={'text': "AI Risk Meter"},
+                gauge={
+                    'axis': {'range':[0,10]},
+                    'steps':[
+                        {'range':[0,4],'color':'green'},
+                        {'range':[4,7],'color':'orange'},
+                        {'range':[7,10],'color':'red'}
+                    ]
+                }
+            ))
+
+            st.plotly_chart(gauge, use_container_width=True)
+
+            sentiment_data = {
+                "Positive": confidence if sentiment=="positive" else 0,
+                "Neutral": confidence if sentiment=="neutral" else 0,
+                "Negative": confidence if sentiment=="negative" else 0
+            }
+
+            sentiment_fig = px.bar(
+                x=list(sentiment_data.keys()),
+                y=list(sentiment_data.values()),
+                title="FinBERT Sentiment Intelligence"
+            )
+
+            st.plotly_chart(sentiment_fig, use_container_width=True)
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # -------- LIVE AI INSIGHTS --------
+        with col2:
+
+            st.markdown('<div class="glass">', unsafe_allow_html=True)
+
+            st.subheader("🧠 Live AI Insights")
+
+            insight_box = st.empty()
+
+            for reason in data['reasons']:
+                insight_box.info(reason)
+                time.sleep(0.4)
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        st.divider()
+
+        # ==========================
+        # KEYWORD INTELLIGENCE
+        # ==========================
+        st.markdown('<div class="glass">', unsafe_allow_html=True)
+
+        st.subheader("⚡ Keyword Risk Intelligence")
+
+        text = data['full_transcript'].lower()
+
+        keywords = ["profit","crypto","buy","sell","guaranteed","secret","fast","millionaire"]
+
+        counts = {}
+
+        for word in keywords:
+            counts[word] = len(re.findall(r'\b'+word+r'\b', text))
+
+        keyword_fig = px.bar(
+            x=list(counts.keys()),
+            y=list(counts.values()),
+            title="Risk Keyword Frequency"
+        )
+
+        st.plotly_chart(keyword_fig, use_container_width=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # ==========================
+        # TRANSCRIPT
+        # ==========================
+        with st.expander("📜 Full AI Transcript"):
+            st.write(data['full_transcript'])
 
 st.divider()
-st.caption("⚠️ This tool is for educational purposes only and does not constitute financial advice.")
+st.caption("Educational only — Not financial advice.")
