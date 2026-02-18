@@ -1,16 +1,12 @@
 import whisper
 import os
+import ssl
 
-# Load model once at module level (saves time on repeated calls)
-# Options: "tiny", "base", "small", "medium", "large"
-# For hackathon: "base" is the sweet spot — fast + accurate enough
+ssl._create_default_https_context = ssl._create_unverified_context
+
 model = whisper.load_model("base")
 
 def transcribe_audio(audio_path: str) -> dict:
-    """
-    Transcribes an audio file using Whisper.
-    Returns transcript text and detected language.
-    """
     if not os.path.exists(audio_path):
         raise FileNotFoundError(f"Audio file not found: {audio_path}")
 

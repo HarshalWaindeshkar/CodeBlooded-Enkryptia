@@ -38,6 +38,8 @@ def analyze_video(request: VideoRequest):
     if "youtube.com" not in request.url and "youtu.be" not in request.url:
         raise HTTPException(status_code=400, detail="Only YouTube URLs are supported")
 
+    audio_path = None
+
     try:
         print(f"Downloading: {request.url}")
         audio_path, title, duration = download_audio(request.url)
@@ -54,24 +56,29 @@ def analyze_video(request: VideoRequest):
         score = calculate_risk_score(analysis)
         print(f"Score: {score['risk_score']}/10")
 
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
-
         return {
             "success": True,
             "video_title": title,
             "duration_seconds": duration,
             "language": transcript["language"],
             "transcript_preview": transcript["text"][:300],
+            "full_transcript": transcript["text"],        # ← added
             "risk_score": score["risk_score"],
             "risk_label": score["risk_label"],
             "reasons": score["reasons"],
             "hype_keywords_found": analysis["hype_analysis"]["found_keywords"],
             "disclaimer_found": analysis["disclaimer_analysis"]["has_disclaimer"],
             "found_disclaimers": analysis["disclaimer_analysis"]["found_disclaimers"],
-            "word_count": analysis["transcript_length"]
+            "word_count": analysis["transcript_length"],
+            "finbert_sentiment": score.get("finbert_sentiment", "neutral"),
+            "finbert_confidence": score.get("finbert_confidence", 0.0)
         }
 
     except Exception as e:
         print("ERROR:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        if audio_path and os.path.exists(audio_path):
+            os.remove(audio_path)
+            print("Temp audio deleted")
